@@ -2,15 +2,33 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
+const minimist = require('minimist');
 
 const app = express();
-const port = 3000;
 
 // Middleware to parse request bodies
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Handle JSON Parse Error
+// Parse command-line arguments
+const argv = minimist(process.argv.slice(2), {
+  string: ['port', 'output'], // Treat these as strings
+  alias: { p: 'port', x: 'output', d: 'output' }, // -p is an alias for --port, -x for --output
+  default: { port: 3000 } // Default port if none is provided
+});
+
+const port = argv.port;
+let basePath = argv.output || ''; // Use provided base path or default to empty string
+
+// Validate the base path
+if (!basePath || !fs.existsSync(basePath) || !fs.statSync(basePath).isDirectory()) {
+  console.error('Error: Invalid base path provided. Please provide a valid directory as a base path.');
+  process.exit(1);
+}
+
+console.log(`Server will listen on port: ${port}`);
+console.log(`Base folder path set to: ${path.resolve(basePath)}`);
+
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     console.error('Bad JSON');
@@ -19,16 +37,11 @@ app.use((err, req, res, next) => {
   next();
 });
 
-// Initialize basePath with a command-line argument
-const basePath = process.argv[2] || '';
 
-// Validate the base path
-if (!basePath || !fs.existsSync(basePath) || !fs.statSync(basePath).isDirectory()) {
-  console.error('Error: Invalid base path provided. Please restart the server with a valid directory as a base path.');
-  process.exit(1);
-}
-
-console.log(`Base folder path set to: ${path.resolve(basePath)}`);
+// REST API endpoint to check server status
+app.get('/status', (req, res) => {
+  res.json({ status: 'ok', message: 'Server is working' });
+});
 
 // REST API endpoint to accept log file path and message
 app.post('/log', (req, res) => {
@@ -41,10 +54,10 @@ app.post('/log', (req, res) => {
 
     // Append the message to the log file
     fs.appendFileSync(fullPath, message + '\n', 'utf8');
-    res.send('Log message saved.');
+    res.json({status: 'ok', message: 'Log message saved successfully.'});
   } catch (error) {
     console.error('Failed to save log message:', error);
-    res.status(500).send('Error: Failed to save log message.');
+    res.status(500).json({status: 'error', message: 'Failed to save log message.'});
   }
 });
 
