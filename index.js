@@ -12,11 +12,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Parse command-line arguments
 const argv = minimist(process.argv.slice(2), {
-  string: ['port', 'output'], // Treat these as strings
-  alias: { p: 'port', x: 'output', d: 'output' }, // -p is an alias for --port, -x for --output
-  default: { port: 3000 } // Default port if none is provided
+  string: ['addr', 'port', 'output'], // Treat these as strings
+  alias: { l: 'addr', p: 'port', x: 'output', d: 'output' }, // -p is an alias for --port, -x for --output
+  default: { addr: 'localhost', port: 3000 } // Default port if none is provided
 });
 
+const address = argv.addr;
 const port = argv.port;
 let basePath = argv.output || ''; // Use provided base path or default to empty string
 
@@ -26,7 +27,7 @@ if (!basePath || !fs.existsSync(basePath) || !fs.statSync(basePath).isDirectory(
   process.exit(1);
 }
 
-console.log(`Server will listen on port: ${port}`);
+console.log(`Server will listen on ${address}:${port}`);
 console.log(`Base folder path set to: ${path.resolve(basePath)}`);
 
 app.use((err, req, res, next) => {
@@ -62,6 +63,6 @@ app.post('/log', (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`);
+app.listen(port, address, () => {
+  console.log(`Server listening at http://${address}:${port}`);
 });
