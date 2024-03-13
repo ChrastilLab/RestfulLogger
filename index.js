@@ -31,7 +31,8 @@ console.log(`Base folder path set to: ${path.resolve(basePath)}`);
 
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    console.error('Bad JSON');
+    console.error('Bad JSON', req.body);
+    
     return res.status(400).send('Error: Malformed JSON syntax.');
   }
   next();
